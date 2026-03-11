@@ -77,6 +77,13 @@
     "line": 71
   },
   {
+    "ruleId": "php.lang.security.injection.tainted-sql-string.tainted-sql-string",
+    "message": "User data flows into this manually-constructed SQL string. User data can be safely inserted into SQL strings using prepared statements or an object-relational mapper (ORM). Manually-constructed SQL strings is a possible indicator of SQL injection, which could let an attacker steal or manipulate data from the database. Instead, use prepared statements (`$mysqli->prepare(\"INSERT INTO test(id, label) VALUES (?, ?)\");`) or a safe library.",
+    "severity": "unknown",
+    "file": "plugins/wp-sms-vatansms-com/includes/class-wpsms-notifications.php",
+    "line": 127
+  },
+  {
     "ruleId": "php.lang.security.curl-ssl-verifypeer-off.curl-ssl-verifypeer-off",
     "message": "SSL verification is disabled but should not be (currently CURLOPT_SSL_VERIFYPEER= false)",
     "severity": "unknown",
