@@ -1,0 +1,63 @@
+name: semgrep
+on: [push]
+
+jobs:
+  define-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      plugins: ${{ steps.set-matrix.outputs.plugins }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: set-matrix
+        run: |
+          PLUGINS=$(ls -1d plugins/*/ | sed 's:.*/::' | jq -R . | jq -s . | tr -d '[:space:]')
+          echo "plugins=$PLUGINS" >> $GITHUB_OUTPUT
+
+  scan:
+    needs: define-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        plugin: ${{ fromJson(needs.define-matrix.outputs.plugins) }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep and generate SARIF report
+        run: |
+          mkdir -p reports
+          semgrep scan --config=auto plugins/${{ matrix.plugin }} --sarif --output=reports/${{ matrix.plugin }}-result.sarif || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.plugin }}-report
+          path: reports/${{ matrix.plugin }}-result.sarif
+          retention-days: 1
+
+  commit-reports:
+    needs: scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: reports-tmp
+      - name: Move all reports
+        run: |
+          mkdir -p reports
+          find reports-tmp -name "*.sarif" -exec mv {} reports/ \;
+      - name: Commit reports
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git pull origin main || true
+          git add reports/
+          git diff --cached --quiet || git commit -m "chore: update semgrep reports [skip ci]"
+          git push
