@@ -73,6 +73,13 @@
     "ruleId": "php.lang.security.injection.tainted-sql-string.tainted-sql-string",
     "message": "User data flows into this manually-constructed SQL string. User data can be safely inserted into SQL strings using prepared statements or an object-relational mapper (ORM). Manually-constructed SQL strings is a possible indicator of SQL injection, which could let an attacker steal or manipulate data from the database. Instead, use prepared statements (`$mysqli->prepare(\"INSERT INTO test(id, label) VALUES (?, ?)\");`) or a safe library.",
     "severity": "unknown",
+    "file": "plugins/wp-sms-vatansms-com/includes/admin/send/class-wpsms-send.php",
+    "line": 77
+  },
+  {
+    "ruleId": "php.lang.security.injection.tainted-sql-string.tainted-sql-string",
+    "message": "User data flows into this manually-constructed SQL string. User data can be safely inserted into SQL strings using prepared statements or an object-relational mapper (ORM). Manually-constructed SQL strings is a possible indicator of SQL injection, which could let an attacker steal or manipulate data from the database. Instead, use prepared statements (`$mysqli->prepare(\"INSERT INTO test(id, label) VALUES (?, ?)\");`) or a safe library.",
+    "severity": "unknown",
     "file": "plugins/wp-sms-vatansms-com/includes/admin/subscribers/class-wpsms-subscribers-table.php",
     "line": 71
   },
@@ -103,12 +110,5 @@
     "severity": "unknown",
     "file": "plugins/wp-sms-vatansms-com/includes/libraries/nusoap.class.php",
     "line": 8213
-  },
-  {
-    "ruleId": "php.lang.security.eval-use.eval-use",
-    "message": "Evaluating non-constant commands. This can lead to command injection.",
-    "severity": "unknown",
-    "file": "plugins/wp-sms-vatansms-com/includes/libraries/nusoap.class.php",
-    "line": 8215
   }
 ]
