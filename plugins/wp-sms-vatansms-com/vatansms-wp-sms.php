@@ -3,7 +3,7 @@
  * Plugin Name: WP SMS VatanSMS.com
  * Plugin URI: https://vatansms.com/
  * Description: VatanSMS WordPress
- * Version: 1.01
+ * Version: 1.01  
  * Author: VatanSMS
  * Author URI: https://vatansms.com/
  * Text Domain: WP SMS VatanSMS.com
