@@ -31,7 +31,6 @@ jobs:
         run: |
           mkdir -p reports
           semgrep scan --config=auto plugins/${{ matrix.plugin }} --json --output=reports/${{ matrix.plugin }}_results.json || true
-        # '|| true' prevents blocking findings from stopping the workflow
 
       - name: Upload Semgrep Report
         uses: actions/upload-artifact@v4
