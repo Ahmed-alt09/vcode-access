@@ -1,11 +1,26 @@
 name: semgrep
-on: [push]
+on: [push, pull_request]
 
 jobs:
-  scan:
+  define-matrix:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    outputs:
+      plugins: ${{ steps.set-matrix.outputs.plugins }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: set-matrix
+        run: |
+          # Find all subdirectories in plugins/ and convert to JSON array
+          PLUGINS=$(find plugins -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -u | jq -R . | jq -s . | tr -d '[:space:]')
+          echo "plugins=$PLUGINS" >> $GITHUB_OUTPUT
+
+  scan:
+    needs: define-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        plugin: ${{ fromJson(needs.define-matrix.outputs.plugins) }}
+      fail-fast: false
     steps:
       - uses: actions/checkout@v4
 
@@ -15,12 +30,12 @@ jobs:
       - name: Run Semgrep and generate JSON report
         run: |
           mkdir -p reports
-          semgrep scan --config=auto --json --output=reports/semgrep_results.json || true
+          semgrep scan --config=auto plugins/${{ matrix.plugin }} --json --output=reports/${{ matrix.plugin }}_results.json || true
         # '|| true' prevents blocking findings from stopping the workflow
 
       - name: Upload Semgrep Report
         uses: actions/upload-artifact@v4
         with:
-          name: semgrep-report
-          path: reports/semgrep_results.json
+          name: semgrep-report-${{ matrix.plugin }}
+          path: reports/${{ matrix.plugin }}_results.json
           retention-days: 1
