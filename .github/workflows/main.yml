@@ -11,6 +11,7 @@ jobs:
         run: |
           PLUGINS=$(ls -1d plugins/*/ | sed 's:.*/::' | jq -R . | jq -s . | tr -d '[:space:]')
           echo "plugins=$PLUGINS" >> $GITHUB_OUTPUT
+          echo "DEBUG plugins: $PLUGINS"
 
   scan:
     needs: define-matrix
