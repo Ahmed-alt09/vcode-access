@@ -1,7 +1,5 @@
 name: semgrep
-
 on: [push]
-
 jobs:
   define-matrix:
     runs-on: ubuntu-latest
@@ -30,9 +28,9 @@ jobs:
           mkdir -p reports
           semgrep scan --config=auto plugins/${{ matrix.plugin }} --sarif --output=reports/${{ matrix.plugin }}-result.sarif || true
       - name: Upload artifact
-        uses: actions/upload-artifact@v4   # ← was v3
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.plugin }}-report
+          name: ${{ matrix.plugin }}-report-${{ github.run_number }}  # ← unique name
           path: reports/${{ matrix.plugin }}-result.sarif
           retention-days: 1
 
@@ -44,9 +42,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Download all artifacts
-        uses: actions/download-artifact@v4   # ← was v3
+        uses: actions/download-artifact@v4
         with:
           path: reports-tmp
+          pattern: "*-report-${{ github.run_number }}"  # ← match same name pattern
+          merge-multiple: true
       - name: Move all reports
         run: |
           mkdir -p reports
