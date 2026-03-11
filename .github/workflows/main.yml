@@ -30,13 +30,30 @@ jobs:
           semgrep scan --config=auto plugins/${{ matrix.plugin }} --sarif --output=reports/${{ matrix.plugin }}-result.sarif || true
       - name: Convert SARIF to JSON
         run: |
-          jq '[.runs[0].results[] | {
-            ruleId: .ruleId,
-            message: .message.text,
-            severity: .level,
-            file: .locations[0].physicalLocation.artifactLocation.uri,
-            line: .locations[0].physicalLocation.region.startLine
+          echo "=== Raw SARIF ==="
+          cat reports/${{ matrix.plugin }}-result.sarif
+
+          echo "=== Total runs ==="
+          jq '.runs | length' reports/${{ matrix.plugin }}-result.sarif
+
+          echo "=== Total results ==="
+          jq '.runs[0].results | length' reports/${{ matrix.plugin }}-result.sarif
+
+          echo "=== First raw result ==="
+          jq '.runs[0].results[0]' reports/${{ matrix.plugin }}-result.sarif
+
+          echo "=== Converting ==="
+          jq '[.runs[0].results // [] | .[] | {
+            ruleId: (.ruleId // "unknown"),
+            message: (.message.text // ""),
+            severity: (.level // "unknown"),
+            file: (.locations[0].physicalLocation.artifactLocation.uri // "unknown"),
+            line: (.locations[0].physicalLocation.region.startLine // 0)
           }]' reports/${{ matrix.plugin }}-result.sarif > reports/${{ matrix.plugin }}-result.json
+
+          echo "=== Converted JSON ==="
+          cat reports/${{ matrix.plugin }}-result.json
+
           rm reports/${{ matrix.plugin }}-result.sarif
       - name: Upload artifact
         uses: actions/upload-artifact@v4
