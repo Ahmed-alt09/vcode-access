@@ -9,9 +9,13 @@ jobs:
       - uses: actions/checkout@v3
       - id: set-matrix
         run: |
-          PLUGINS=$(ls -1d plugins/*/ | sed 's:.*/::' | jq -R . | jq -s . | tr -d '[:space:]')
-          echo "plugins=$PLUGINS" >> $GITHUB_OUTPUT
+          echo "=== Repo structure ==="
+          ls -la
+          echo "=== Plugins dir ==="
+          ls -la plugins/ || echo "plugins/ does not exist!"
+          PLUGINS=$(find plugins -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -u | jq -R . | jq -s . | tr -d '[:space:]')
           echo "DEBUG plugins: $PLUGINS"
+          echo "plugins=$PLUGINS" >> $GITHUB_OUTPUT
 
   scan:
     needs: define-matrix
