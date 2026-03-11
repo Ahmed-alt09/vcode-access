@@ -32,16 +32,12 @@ jobs:
         run: |
           echo "=== Raw SARIF ==="
           cat reports/${{ matrix.plugin }}-result.sarif
-
           echo "=== Total runs ==="
           jq '.runs | length' reports/${{ matrix.plugin }}-result.sarif
-
           echo "=== Total results ==="
           jq '.runs[0].results | length' reports/${{ matrix.plugin }}-result.sarif
-
           echo "=== First raw result ==="
           jq '.runs[0].results[0]' reports/${{ matrix.plugin }}-result.sarif
-
           echo "=== Converting ==="
           jq '[.runs[0].results // [] | .[] | {
             ruleId: (.ruleId // "unknown"),
@@ -50,10 +46,8 @@ jobs:
             file: (.locations[0].physicalLocation.artifactLocation.uri // "unknown"),
             line: (.locations[0].physicalLocation.region.startLine // 0)
           }]' reports/${{ matrix.plugin }}-result.sarif > reports/${{ matrix.plugin }}-result.json
-
           echo "=== Converted JSON ==="
           cat reports/${{ matrix.plugin }}-result.json
-
           rm reports/${{ matrix.plugin }}-result.sarif
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -79,11 +73,25 @@ jobs:
         run: |
           mkdir -p reports
           find reports-tmp -name "*.json" -exec mv {} reports/ \;
-      - name: Commit reports
+      - name: Delete scanned plugins
+        run: |
+          echo "=== Plugins before deletion ==="
+          ls -la plugins/
+          find plugins -mindepth 1 -maxdepth 1 -type d | while read plugin_dir; do
+            plugin=$(basename "$plugin_dir")
+            if [ -f "reports/${plugin}-result.json" ]; then
+              echo "Deleting scanned plugin: $plugin"
+              rm -rf "plugins/${plugin}"
+            fi
+          done
+          echo "=== Plugins after deletion ==="
+          ls -la plugins/
+      - name: Commit reports and delete plugins
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git pull origin main || true
           git add reports/
-          git diff --cached --quiet || git commit -m "chore: update semgrep reports [skip ci]"
+          git add plugins/
+          git diff --cached --quiet || git commit -m "chore: update semgrep reports and remove scanned plugins [skip ci]"
           git push
