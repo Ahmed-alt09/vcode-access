@@ -1,97 +1,26 @@
 name: semgrep
 on: [push]
+
 jobs:
-  define-matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      plugins: ${{ steps.set-matrix.outputs.plugins }}
-    steps:
-      - uses: actions/checkout@v3
-      - id: set-matrix
-        run: |
-          PLUGINS=$(find plugins -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -u | jq -R . | jq -s . | tr -d '[:space:]')
-          echo "DEBUG plugins: $PLUGINS"
-          echo "plugins=$PLUGINS" >> $GITHUB_OUTPUT
-
   scan:
-    needs: define-matrix
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        plugin: ${{ fromJson(needs.define-matrix.outputs.plugins) }}
-      fail-fast: false
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install Semgrep
-        run: pip install semgrep
-      - name: Run Semgrep and generate SARIF report
-        run: |
-          mkdir -p reports
-          semgrep scan --config=auto plugins/${{ matrix.plugin }} --sarif --output=reports/${{ matrix.plugin }}-result.sarif || true
-      - name: Convert SARIF to JSON
-        run: |
-          echo "=== Raw SARIF ==="
-          cat reports/${{ matrix.plugin }}-result.sarif
-          echo "=== Total runs ==="
-          jq '.runs | length' reports/${{ matrix.plugin }}-result.sarif
-          echo "=== Total results ==="
-          jq '.runs[0].results | length' reports/${{ matrix.plugin }}-result.sarif
-          echo "=== First raw result ==="
-          jq '.runs[0].results[0]' reports/${{ matrix.plugin }}-result.sarif
-          echo "=== Converting ==="
-          jq '[.runs[0].results // [] | .[] | {
-            ruleId: (.ruleId // "unknown"),
-            message: (.message.text // ""),
-            severity: (.level // "unknown"),
-            file: (.locations[0].physicalLocation.artifactLocation.uri // "unknown"),
-            line: (.locations[0].physicalLocation.region.startLine // 0)
-          }]' reports/${{ matrix.plugin }}-result.sarif > reports/${{ matrix.plugin }}-result.json
-          echo "=== Converted JSON ==="
-          cat reports/${{ matrix.plugin }}-result.json
-          rm reports/${{ matrix.plugin }}-result.sarif
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.plugin }}-report-${{ github.run_number }}
-          path: reports/${{ matrix.plugin }}-result.json
-          retention-days: 1
-
-  commit-reports:
-    needs: scan
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
-      - uses: actions/checkout@v3
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: reports-tmp
-          pattern: "*-report-${{ github.run_number }}"
-          merge-multiple: true
-      - name: Move all reports
+      - uses: actions/checkout@v4
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep and generate JSON report
         run: |
           mkdir -p reports
-          find reports-tmp -name "*.json" -exec mv {} reports/ \;
-      - name: Delete scanned plugins
-        run: |
-          echo "=== Plugins before deletion ==="
-          ls -la plugins/
-          find plugins -mindepth 1 -maxdepth 1 -type d | while read plugin_dir; do
-            plugin=$(basename "$plugin_dir")
-            if [ -f "reports/${plugin}-result.json" ]; then
-              echo "Deleting scanned plugin: $plugin"
-              rm -rf "plugins/${plugin}"
-            fi
-          done
-          echo "=== Plugins after deletion ==="
-          ls -la plugins/
-      - name: Commit reports and delete plugins
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git pull origin main || true
-          git add reports/
-          git add plugins/
-          git diff --cached --quiet || git commit -m "chore: update semgrep reports and remove scanned plugins [skip ci]"
-          git push
+          semgrep scan --config=auto --json --output=reports/semgrep_results.json || true
+        # '|| true' prevents blocking findings from stopping the workflow
+
+      - name: Upload Semgrep Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: reports/semgrep_results.json
+          retention-days: 1
