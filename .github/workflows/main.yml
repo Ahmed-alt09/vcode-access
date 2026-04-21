@@ -30,7 +30,7 @@ jobs:
       - name: Run Semgrep and generate JSON report
         run: |
           mkdir -p reports
-          semgrep scan --config=./rules/wp-csrf.yml plugins/${{ matrix.plugin }} --json --output=reports/${{ matrix.plugin }}_results.json || true
+          semgrep scan --config=auto plugins/${{ matrix.plugin }} --json --output=reports/${{ matrix.plugin }}_results.json || true
 
       - name: Upload Semgrep Report
         uses: actions/upload-artifact@v4
